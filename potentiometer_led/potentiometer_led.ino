@@ -3,8 +3,8 @@
  * Date:   02.09.2016
  * Author: Denis Nutiu
  */
-#define POTENTIOMETER_PIN 5
-#define LED_PIN 3
+#define POTENTIOMETER_PIN 0
+#define LED_PIN 11
 
 int potentiometer_value;
 
