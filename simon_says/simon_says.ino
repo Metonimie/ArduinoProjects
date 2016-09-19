@@ -180,7 +180,7 @@ int Game::gameOver() {
  */
 int Game::userInput() {
     for (int i = 0; i < Game::currentLevel; ++i) {
-      Serial.printlb("userInput: User is pressing.");
+      Serial.println("userInput: User is pressing.");
       int buttonPressed = -1;
       while(true) {
           buttonPressed = readButton(Game::RED_BUTTON_PIN);
