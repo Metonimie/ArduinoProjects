@@ -91,7 +91,7 @@ byte getState(int state) {
 
 /* Shifts out the data to the register, accepts only byte from the led_state enum */
 void writeDataToShiftRegister(led_state state) {
-    Serial.print("SEND TO SHIFT REGISTER: ");
+    Serial.print("writeDataToShiftRegister: Sent:");
     Serial.println(state, BIN);
     
     digitalWrite(LATCH, LOW);
