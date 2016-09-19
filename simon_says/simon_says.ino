@@ -64,7 +64,7 @@ static const int Game::GREEN_TONE           = 800;
 static const int Game::GAMEOVER_TONE        = 1000;
 
 // Functions
-Game::Game() : gameSpeed(1000), lastButtonValue(-1), currentLevel(0), gameDifficulty(5), gameIsOver(0) {
+Game::Game() : gameSpeed(1000), lastButtonValue(-1), currentLevel(0), gameDifficulty(10), gameIsOver(0) {
     Serial.println("Constructing game object");
     pinMode(Game::MICROPHONE_PIN, OUTPUT);
     pinMode(Game::BLUE_PIN, OUTPUT);
@@ -73,6 +73,9 @@ Game::Game() : gameSpeed(1000), lastButtonValue(-1), currentLevel(0), gameDiffic
     pinMode(Game::YELLOW_PIN, OUTPUT);
 }
 
+/*
+ * Makes sure the button is pressed only once.
+ */
 int Game::debounce(int last, int buttonPin) {
       int current = digitalRead(buttonPin);
       if (last != current)
@@ -83,6 +86,10 @@ int Game::debounce(int last, int buttonPin) {
       return current;
 }
 
+/*
+ * Plays a note. 
+ * Receives the button number and plays the corresponding note.
+ */
 void Game::playNote(int note, int noteSpeed) const {
     Serial.print("playNote: Playing note: ");
     Serial.print(note);
@@ -112,6 +119,9 @@ void Game::playNote(int note, int noteSpeed) const {
     tone(Game::MICROPHONE_PIN, note, noteSpeed);  
 }
 
+/*
+ * Flashes a led. Receives the led code and sets it to the corresponding pin.
+ */
 void Game::flashLed(int led, int flashSpeed) const {
     Serial.print("flashLed: Flashing LED: ");
     Serial.print(led);
@@ -125,6 +135,9 @@ void Game::flashLed(int led, int flashSpeed) const {
     digitalWrite(led, LOW);
 }
 
+/*
+ * Plays the next level.
+ */
 void Game::playLevel() {
   Serial.print("playLevel: Playing on level: ");
   Serial.println(currentLevel);
@@ -139,6 +152,10 @@ void Game::playLevel() {
   }
 }
 
+/*
+ * Reads the button value and returns the following codes:
+ * 0 - Yellow 1 - Green 2 - Red 3 - Blue
+ */
 int Game::readButton(int buttonPin) {
     int currentButtonValue = Game::debounce(Game::lastButtonValue, buttonPin);
     int return_value = -1;
@@ -158,9 +175,12 @@ int Game::gameOver() {
     return Game::gameIsOver;
 }
 
+/*
+ * Gets the user button presses and checks them to see if they're good.
+ */
 int Game::userInput() {
     for (int i = 0; i < Game::currentLevel; ++i) {
-      Serial.print("userInput: User pressed: ");
+      Serial.printlb("userInput: User is pressing.");
       int buttonPressed = -1;
       while(true) {
           buttonPressed = readButton(Game::RED_BUTTON_PIN);
@@ -172,7 +192,7 @@ int Game::userInput() {
           buttonPressed = readButton(Game::BLUE_BUTTON_PIN);
           if (buttonPressed != -1) { break; }
       }
-      Serial.println(buttonPressed);
+
       if (buttonPressed != gameLevel[i]) {
           Game::playNote(4, 100); // game over note, and game over note speed.
           Game::flashLed(buttonPressed, 1000);
@@ -185,6 +205,7 @@ int Game::userInput() {
     return 1;
 }
 
+//  Constructs the game object.
 Game g;
 void setup() {
   Serial.begin(9600);
@@ -193,7 +214,7 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  // if not game over play level if user input is good continue else game over
   if ( !g.gameOver() ) {
     g.playLevel();
     if (g.userInput() == 0) {
