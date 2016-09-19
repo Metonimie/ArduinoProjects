@@ -2,6 +2,7 @@
  * Author: Denis Cosmin
  * Date: 19.09.2016
  * Name: Simon Says
+ * To add a reset button connect: reset -> button <- pulldown resistor ground.
  */
 
 // Color definitions
