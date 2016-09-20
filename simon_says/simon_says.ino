@@ -2,14 +2,22 @@
  * Author: Denis Cosmin
  * Date: 19.09.2016
  * Name: Simon Says
+ * 
  * To add a reset button connect: reset -> button <- pulldown resistor ground.
+ * The buttons have 1k pulldown resitors.
+ * The leds have a 220 ohm resistor.
+ * 
+ * Will use the following numbers for colors, pins and notes
+ * 0 - Yellow
+ * 1 - Green
+ * 2 - Red
+ * 3 - Blue
+ * 
  */
 
-// Color definitions
-// 0 - Yellow
-// 1 - Green
-// 2 - Red
-// 3 - Blue
+/*
+ * The game class, handles everything.
+ */
 class Game {
     private:
       int debounce(int last, int buttonPin);
@@ -36,11 +44,13 @@ class Game {
       int currentLevel;
       int gameIsOver;
       double gameDifficulty;
+      enum color { YELLOW, GREEN, RED, BLUE };
     public:
     Game();
     void playLevel();
     int userInput();
     int gameOver();
+    int getNote(int note) const;
     int readButton(int buttonPin);
 };
 
@@ -63,7 +73,7 @@ static const int Game::YELLOW_TONE          = 600;
 static const int Game::GREEN_TONE           = 800;
 static const int Game::GAMEOVER_TONE        = 1000;
 
-// Functions
+// Construct and initialize the Game object.
 Game::Game() : gameSpeed(1000), lastButtonValue(-1), currentLevel(0), gameDifficulty(10), gameIsOver(0) {
     Serial.println("Constructing game object");
     pinMode(Game::MICROPHONE_PIN, OUTPUT);
@@ -95,28 +105,33 @@ void Game::playNote(int note, int noteSpeed) const {
     Serial.print(note);
     Serial.print(" with speed: ");
     Serial.println(noteSpeed);
+    
+    note = Game::getNote(note);
+    tone(Game::MICROPHONE_PIN, note, noteSpeed);  
+}
 
+int Game::getNote(int note) const {
+    int return_value = -1;
     switch(note) {
-      case 0:
-          note = Game::YELLOW_TONE;
+      case YELLOW:
+          return_value = Game::YELLOW_TONE;
           break;
-      case 1:
-          note = Game::GREEN_TONE;
+      case GREEN:
+          return_value = Game::GREEN_TONE;
           break;
-      case 2:
-          note = Game::RED_TONE;
+      case RED:
+          return_value = Game::RED_TONE;
           break;
-      case 3:
-          note = Game::BLUE_TONE;
+      case BLUE:
+          return_value = Game::BLUE_TONE;
           break;
       case 4:
-          note = Game::GAMEOVER_TONE;
+          return_value = Game::GAMEOVER_TONE;
           break;        
       default:
         Serial.println("playNote: Error! Invalid note!");
     }
-    
-    tone(Game::MICROPHONE_PIN, note, noteSpeed);  
+    return return_value;
 }
 
 /*
@@ -140,13 +155,13 @@ void Game::flashLed(int led, int flashSpeed) const {
  */
 void Game::playLevel() {
   Serial.print("playLevel: Playing on level: ");
-  Serial.println(currentLevel);
-  Game::gameLevel[currentLevel] = random(0, 4); // Create a random move every time.
-  ++currentLevel;
+  Serial.println(Game::currentLevel);
+  Game::gameLevel[Game::currentLevel] = random(0, 4); // Create a random move every time. 0 to 4 exclusive.
+  ++Game::currentLevel;
   Game::gameSpeed -= Game::gameDifficulty * Game::currentLevel; // decrease the speed;
 
   // Play all the moves
-  for (int i = 0; i < currentLevel; ++i) {
+  for (int i = 0; i < Game::currentLevel; ++i) {
       Game::playNote(Game::gameLevel[i], Game::gameSpeed);
       Game::flashLed(Game::gameLevel[i], Game::gameSpeed);
   }
@@ -205,16 +220,12 @@ int Game::userInput() {
     return 1;
 }
 
-//  Constructs the game object.
-Game g;
+Game g; //  Constructs the game object.
 void setup() {
   Serial.begin(9600);
-  // put your setup code here, to run once:
-
 }
 
 void loop() {
-  // if not game over play level if user input is good continue else game over
   if ( !g.gameOver() ) {
     g.playLevel();
     if (g.userInput() == 0) {
