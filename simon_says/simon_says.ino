@@ -47,10 +47,13 @@ class Game {
       enum color { YELLOW, GREEN, RED, BLUE };
     public:
     Game();
+    Game(int);
     void playLevel();
     int userInput();
     int gameOver();
     int getNote(int note) const;
+    int pinToColorCode(int);
+    int colorCodeToPin(int);
     int readButton(int buttonPin);
 };
 
@@ -74,6 +77,16 @@ static const int Game::GREEN_TONE           = 800;
 static const int Game::GAMEOVER_TONE        = 1000;
 
 // Construct and initialize the Game object.
+Game::Game(int difficulty) : gameSpeed(1000), lastButtonValue(-1), currentLevel(0), gameDifficulty(difficulty), gameIsOver(0) {
+    Serial.print("Constructing game object with difficulty: ");
+    Serial.println(difficulty);
+    pinMode(Game::MICROPHONE_PIN, OUTPUT);
+    pinMode(Game::BLUE_PIN, OUTPUT);
+    pinMode(Game::RED_PIN, OUTPUT);
+    pinMode(Game::GREEN_PIN, OUTPUT);
+    pinMode(Game::YELLOW_PIN, OUTPUT);
+}
+
 Game::Game() : gameSpeed(1000), lastButtonValue(-1), currentLevel(0), gameDifficulty(10), gameIsOver(0) {
     Serial.println("Constructing game object");
     pinMode(Game::MICROPHONE_PIN, OUTPUT);
@@ -107,9 +120,68 @@ void Game::playNote(int note, int noteSpeed) const {
     Serial.println(noteSpeed);
     
     note = Game::getNote(note);
+    
     tone(Game::MICROPHONE_PIN, note, noteSpeed);  
 }
 
+/*
+ * Returns the corresponding color code based on pin.
+ */
+int Game::colorCodeToPin(int value) {
+    int ret_val = -1;
+   
+    switch(value) {
+      case RED:
+          ret_val = Game::RED_PIN;
+          break;
+      case GREEN:
+          ret_val = Game::GREEN_PIN;
+          break;
+      case BLUE:
+          ret_val = Game::BLUE_PIN;
+          break;
+      case YELLOW:
+          ret_val = Game::YELLOW_PIN;
+          break;
+      default:
+        Serial.println("colorCodeToPin: Invalid value!");
+        delay(1000);
+        exit(0);
+    }
+
+    return ret_val;
+}
+
+/*
+ * Converts the button pin to a color code.
+ */
+int Game::pinToColorCode(int value) {
+    int ret_val = -1;
+    switch(value) {
+        case Game::RED_BUTTON_PIN:
+            ret_val = RED;
+            break;
+        case Game::GREEN_BUTTON_PIN:
+            ret_val = GREEN;
+            break;
+        case Game::BLUE_BUTTON_PIN:
+            ret_val = BLUE;
+            break;
+        case Game::YELLOW_BUTTON_PIN:
+            ret_val = YELLOW;
+            break;
+        default:
+          Serial.println("pinToColorCode: Invalid value!");
+          delay(1000);
+          exit(0);
+    }
+
+    return ret_val;
+}
+
+/*
+ * The the corresponding note based on the color code it receives.
+ */
 int Game::getNote(int note) const {
     int return_value = -1;
     switch(note) {
@@ -130,6 +202,8 @@ int Game::getNote(int note) const {
           break;        
       default:
         Serial.println("playNote: Error! Invalid note!");
+        delay(1000);
+        exit(0);
     }
     return return_value;
 }
@@ -143,7 +217,7 @@ void Game::flashLed(int led, int flashSpeed) const {
     Serial.print(" with speed: ");
     Serial.println(flashSpeed);
 
-    led = led + Game::YELLOW_PIN;
+    led = Game::colorCodeToPin(led);
 
     digitalWrite(led, HIGH);
     delay(flashSpeed);
@@ -158,8 +232,11 @@ void Game::playLevel() {
   Serial.println(Game::currentLevel);
   Game::gameLevel[Game::currentLevel] = random(0, 4); // Create a random move every time. 0 to 4 exclusive.
   ++Game::currentLevel;
-  Game::gameSpeed -= Game::gameDifficulty * Game::currentLevel; // decrease the speed;
-
+  int nextDificulty = Game::gameDifficulty * Game::currentLevel;
+  if (Game::gameSpeed - nextDificulty >= 10) {
+    Game::gameSpeed -= nextDificulty; // decrease the speed;
+  }
+  
   // Play all the moves
   for (int i = 0; i < Game::currentLevel; ++i) {
       Game::playNote(Game::gameLevel[i], Game::gameSpeed);
@@ -175,7 +252,7 @@ int Game::readButton(int buttonPin) {
     int currentButtonValue = Game::debounce(Game::lastButtonValue, buttonPin);
     int return_value = -1;
     if (lastButtonValue == LOW && currentButtonValue > LOW) {
-        return_value = buttonPin - Game::YELLOW_BUTTON_PIN;
+        return_value = Game::pinToColorCode(buttonPin);
     }
     Game::lastButtonValue = currentButtonValue;
     if (return_value >= 0) {
@@ -186,7 +263,10 @@ int Game::readButton(int buttonPin) {
 }
 
 int Game::gameOver() {
-    Serial.println("game_is_over: call");
+    Serial.println("game_is_over: Checking if game is over!");
+    if (Game::gameIsOver) {
+      Serial.println("game_is_over: Game is over!");
+    }
     return Game::gameIsOver;
 }
 
@@ -220,16 +300,19 @@ int Game::userInput() {
     return 1;
 }
 
-Game g; //  Constructs the game object.
+Game g(50); //  Constructs the game object.
 void setup() {
   Serial.begin(9600);
+  randomSeed(0);
 }
 
 void loop() {
-  if ( !g.gameOver() ) {
+  if (g.gameOver()) { 
+    delay(1000); // Wait for serial to finish printing.
+    exit(0);
+  }
     g.playLevel();
     if (g.userInput() == 0) {
         g.gameIsOver = 1;
     }
-  }
 }

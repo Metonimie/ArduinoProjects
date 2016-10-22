@@ -6,7 +6,7 @@
 const int redPin    = 2;
 const int greenPin  = 3;
 const int bluePin   = 4;
-const int buttonPin = 13;
+const int buttonPin = 6;
 
 enum state { OFF, R_ON, G_ON, B_ON, RG_ON, RB_ON, BG_ON, RGB_ON };
 
