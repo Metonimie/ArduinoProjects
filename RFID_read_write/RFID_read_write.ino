@@ -15,9 +15,11 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 MFRC522::MIFARE_Key key; // will hold card info
 
 // Every 4th block is a trailer block that contains access and security info, modulo 4.
+const int blockSize = 16;
+
 int writeBlockNumber = 2; // The block we want to write the data.
 int readBlockNumber = 2;
-byte writeBlockContent[16] = { "Ma numesc gogoas" }; // 16 character max
+byte writeBlockContent[blockSize] = { "Denis Cosmin" }; // 16 character max
 byte readBlockContent[18] = { 0 };
 
 // Will write the data to the block.
@@ -26,6 +28,7 @@ int writeBlock(int block, byte data[]) {
   
   if ( (block + 1) % 4 == 0) {
     Serial.println("Warning: Writing on a trailer block!");
+    return 0;
   }
 
   int trailerBlock = block + (4 - block % 4) - 1;
@@ -36,7 +39,7 @@ int writeBlock(int block, byte data[]) {
     return status;
   }
 
-  status = mfrc522.MIFARE_Write(block, data, 16);
+  status = mfrc522.MIFARE_Write(block, data, blockSize);
   if ( status != MFRC522::STATUS_OK ) {
     Serial.print("MIFARE_Write() failed: ");
     Serial.println(mfrc522.GetStatusCodeName(status));
@@ -47,17 +50,29 @@ int writeBlock(int block, byte data[]) {
 
 // Will try to dump the whole card info.
 void dumpCard() {
-  int block()
-  
+  for(int i = 0; i < blockSize; ++i) {
+      Serial.print("Block ");
+      Serial.print(i);
+      Serial.print(" ");
+      if ( readBlock(i, readBlockContent) == MFRC522::STATUS_OK ) {
+        printReadBlock();
+      }
+  }
+  mfrc522.PICC_HaltA();
+  mfrc522.PCD_StopCrypto1();
 }
 
 // Will read the block.
+// These functions must be called if you wish to read a new card.
+//    mfrc522.PICC_HaltA();
+//    mfrc522.PCD_StopCrypto1();
 int readBlock(int block, byte data[]) {
   int status;
-  byte readSize = 18;
+  byte readSize = blockSize + 2;
   
   int trailerBlock = block + (4 - block % 4) - 1;
   status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &mfrc522.uid);
+
   if ( status != MFRC522::STATUS_OK ) {
     Serial.print("PCD_Authenticate() failed: ");
     Serial.println(mfrc522.GetStatusCodeName(status));
@@ -68,27 +83,20 @@ int readBlock(int block, byte data[]) {
   if ( status != MFRC522::STATUS_OK ) {
     Serial.print("MIFARE_Read() failed: ");
     Serial.println(mfrc522.GetStatusCodeName(status));
-    mfrc522.PICC_HaltA();
-    mfrc522.PCD_StopCrypto1();
     return status;
   }
-
-  // Check for errors?
-  mfrc522.PICC_HaltA();
-  mfrc522.PCD_StopCrypto1();
   
   return MFRC522::STATUS_OK;
 }
 
 // Will print the contents of the readBlockContent.
 void printReadBlock() {
-  Serial.println("The block contents: ");
-  for (int i = 0; i < 16; ++i) {
+  for (int i = 0; i < blockSize; ++i) {
     Serial.print(readBlockContent[i], HEX);
     Serial.print(" ");
   }
   Serial.print(" -> ");
-  for (int i = 0; i < 16; ++i) {
+  for (int i = 0; i < blockSize; ++i) {
     Serial.write(readBlockContent[i]);
   }
   
@@ -117,8 +125,6 @@ void setup() {
   for (int i = 0; i < 6; ++i) {
     key.keyByte[i] = 0xFF;
   }
-  
-
 }
 
 void loop() {
@@ -133,8 +139,13 @@ void loop() {
   printCardUid();
 
   // Write data to block.
-//  writeBlock(writeBlockNumber, writeBlockContent);
-  if ( readBlock(readBlockNumber, readBlockContent) == MFRC522::STATUS_OK )
-    printReadBlock();
-  
+//  writeBlock(15, writeBlockContent);
+//  if ( readBlock(13, readBlockContent) == MFRC522::STATUS_OK )
+//    printReadBlock();
+
+  dumpCard();
+
+  mfrc522.PICC_HaltA();
+  mfrc522.PCD_StopCrypto1();
 }
+
